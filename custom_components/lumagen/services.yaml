@@ -1,0 +1,90 @@
+set_input_label:
+  name: Set input label
+  description: Set a Lumagen input label for memory A, B, C, or D.
+  fields:
+    memory:
+      name: Memory
+      description: Input memory to update.
+      required: true
+      example: A
+      selector:
+        select:
+          options:
+            - A
+            - B
+            - C
+            - D
+    input_number:
+      name: Input number
+      description: Input number to label. Lumagen command supports inputs 1 through 8.
+      required: true
+      example: 2
+      selector:
+        number:
+          min: 1
+          max: 8
+          mode: box
+    label:
+      name: Label
+      description: New input label. Maximum 10 characters.
+      required: true
+      example: ATV 2A
+      selector:
+        text: {}
+
+set_input_labels:
+  name: Set input labels
+  description: Set multiple Lumagen input labels for memory A, B, C, or D.
+  fields:
+    memory:
+      name: Memory
+      description: Input memory to update.
+      required: true
+      example: A
+      selector:
+        select:
+          options:
+            - A
+            - B
+            - C
+            - D
+    labels:
+      name: Labels
+      description: List of input labels to set. Lumagen command supports inputs 1 through 8.
+      required: true
+      example:
+        - input_number: 1
+          label: ATV 1A
+        - input_number: 2
+          label: Roku 2A
+        - input_number: 3
+          label: Kscape 3A
+      selector:
+        object:
+
+display_message:
+  name: Display message
+  description: Display a message on the Lumagen OSD.
+  fields:
+    message:
+      name: Message
+      description: Message to display. Unsupported characters are removed and text is truncated to 60 characters.
+      required: true
+      example: "Hello from Home Assistant"
+      selector:
+        text: {}
+    duration:
+      name: Duration
+      description: Display duration 0 through 9. Use 9 to leave the message until cleared.
+      required: false
+      default: 5
+      example: 5
+      selector:
+        number:
+          min: 0
+          max: 9
+          mode: box
+
+clear_message:
+  name: Clear message
+  description: Clear the Lumagen OSD message.

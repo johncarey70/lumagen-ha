@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local Python version manager
+.python-version
+
+# Local/dev scripts
+scripts/
+
+# Home Assistant / local
+.storage/
+deps/
+tts/
+home-assistant.log*
