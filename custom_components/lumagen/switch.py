@@ -13,20 +13,21 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import LumagenConfigEntry
-from .coordinator import LumagenCoordinatorData
+from .const import DOMAIN
+from .coordinator import LumagenCoordinatorData, LumagenDataUpdateCoordinator
 from .entity import LumagenEntity
 
 
 @dataclass(frozen=True)
-class LumagenSwitchDescription: # pylint: disable=too-many-instance-attributes
+class LumagenSwitchDescription:  # pylint: disable=too-many-instance-attributes
     """Lumagen switch description."""
 
     key: str
     name: str
     icon: str
     is_on_fn: Callable[[LumagenCoordinatorData], bool | None]
-    turn_on_fn: Callable[["LumagenSwitch"], Awaitable[None]]
-    turn_off_fn: Callable[["LumagenSwitch"], Awaitable[None]]
+    turn_on_fn: Callable[[LumagenSwitch], Awaitable[None]]
+    turn_off_fn: Callable[[LumagenSwitch], Awaitable[None]]
     available_fn: Callable[[LumagenCoordinatorData], bool] | None = None
     entity_category: EntityCategory | None = None
 
@@ -110,16 +111,15 @@ SWITCHES = [
 
 
 async def async_setup_entry(
-    _hass: HomeAssistant,
+    hass: HomeAssistant,
     entry: LumagenConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Lumagen switch entities."""
+    coordinator: LumagenDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+
     async_add_entities(
-        [
-            LumagenSwitch(entry.runtime_data, description)
-            for description in SWITCHES
-        ]
+        [LumagenSwitch(coordinator, description) for description in SWITCHES]
     )
 
 
@@ -128,7 +128,7 @@ class LumagenSwitch(LumagenEntity, SwitchEntity):
 
     def __init__(
         self,
-        coordinator,
+        coordinator: LumagenDataUpdateCoordinator,
         description: LumagenSwitchDescription,
     ) -> None:
         """Initialize the Lumagen switch."""

@@ -11,7 +11,8 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import LumagenConfigEntry
-from .coordinator import LumagenCoordinatorData
+from .const import DOMAIN
+from .coordinator import LumagenCoordinatorData, LumagenDataUpdateCoordinator
 from .entity import LumagenEntity
 
 
@@ -169,7 +170,6 @@ SENSORS = [
         icon="mdi:hdmi-port",
         value_fn=lambda data: _status_value(data, "output_on"),
     ),
-
     # Input diagnostics
     LumagenSensorDescription(
         key="input_mode",
@@ -227,7 +227,6 @@ SENSORS = [
         value_fn=lambda data: _status_value(data, "physical_input_selected"),
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-
     # Output diagnostics
     LumagenSensorDescription(
         key="output_mode",
@@ -278,7 +277,6 @@ SENSORS = [
         value_fn=lambda data: _status_value(data, "active_output_style"),
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-
     # Aspect / processing diagnostics
     LumagenSensorDescription(
         key="detected_source_aspect",
@@ -305,16 +303,15 @@ SENSORS = [
 
 
 async def async_setup_entry(
-    _hass: HomeAssistant,
+    hass: HomeAssistant,
     entry: LumagenConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Lumagen sensor entities."""
+    coordinator: LumagenDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+
     async_add_entities(
-        [
-            LumagenStatusSensor(entry.runtime_data, description)
-            for description in SENSORS
-        ]
+        [LumagenStatusSensor(coordinator, description) for description in SENSORS]
     )
 
 
@@ -323,7 +320,7 @@ class LumagenStatusSensor(LumagenEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator,
+        coordinator: LumagenDataUpdateCoordinator,
         description: LumagenSensorDescription,
     ) -> None:
         """Initialize the Lumagen status sensor."""

@@ -11,6 +11,8 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import LumagenConfigEntry
+from .const import DOMAIN
+from .coordinator import LumagenDataUpdateCoordinator
 from .entity import LumagenEntity
 
 
@@ -21,7 +23,7 @@ class LumagenButtonDescription:
     key: str
     name: str
     icon: str
-    press_fn: Callable[["LumagenButton"], Awaitable[None]]
+    press_fn: Callable[[LumagenButton], Awaitable[None]]
     entity_category: EntityCategory | None = None
 
 
@@ -75,16 +77,14 @@ BUTTONS = [
 
 
 async def async_setup_entry(
-    _hass: HomeAssistant,
+    hass: HomeAssistant,
     entry: LumagenConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Lumagen button entities."""
+    coordinator: LumagenDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities(
-        [
-            LumagenButton(entry.runtime_data, description)
-            for description in BUTTONS
-        ]
+        [LumagenButton(coordinator, description) for description in BUTTONS]
     )
 
 
@@ -93,7 +93,7 @@ class LumagenButton(LumagenEntity, ButtonEntity):
 
     def __init__(
         self,
-        coordinator,
+        coordinator: LumagenDataUpdateCoordinator,
         description: LumagenButtonDescription,
     ) -> None:
         """Initialize the Lumagen button."""

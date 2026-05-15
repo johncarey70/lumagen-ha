@@ -17,10 +17,21 @@ from lumagen_control import (
     TcpTransport,
 )
 
-from .const import (CONF_BAUDRATE, CONF_CONNECTION_TYPE, CONF_MODEL,
-                    CONF_SERIAL_DEVICE, CONF_SERIAL_NUMBER, CONF_SW_VERSION,
-                    CONNECTION_TYPE_SERIAL, CONNECTION_TYPE_TCP,
-                    DEFAULT_BAUDRATE, DEFAULT_NAME, DEFAULT_PORT, DEFAULT_TIMEOUT, DOMAIN)
+from .const import (
+    CONF_BAUDRATE,
+    CONF_CONNECTION_TYPE,
+    CONF_MODEL,
+    CONF_SERIAL_DEVICE,
+    CONF_SERIAL_NUMBER,
+    CONF_SW_VERSION,
+    CONNECTION_TYPE_SERIAL,
+    CONNECTION_TYPE_TCP,
+    DEFAULT_BAUDRATE,
+    DEFAULT_NAME,
+    DEFAULT_PORT,
+    DEFAULT_TIMEOUT,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -107,8 +118,7 @@ class LumagenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         connection_options = {
             CONNECTION_TYPE_TCP: (
-                "Network serial connection "
-                "(serial-over-TCP adapter)"
+                "Network serial connection (serial-over-TCP adapter)"
             ),
             CONNECTION_TYPE_SERIAL: "Local Serial Port (/dev/tty*)",
         }

@@ -11,19 +11,22 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import LumagenConfigEntry
-from .const import REMOTE_COMMANDS
+from .const import DOMAIN, REMOTE_COMMANDS
+from .coordinator import LumagenDataUpdateCoordinator
 from .entity import LumagenEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
-    _hass: HomeAssistant,
+    hass: HomeAssistant,
     entry: LumagenConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Lumagen remote entity."""
-    async_add_entities([LumagenRemote(entry.runtime_data)])
+    coordinator: LumagenDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+
+    async_add_entities([LumagenRemote(coordinator)])
 
 
 class LumagenRemote(LumagenEntity, RemoteEntity):  # pylint: disable=abstract-method
@@ -31,7 +34,7 @@ class LumagenRemote(LumagenEntity, RemoteEntity):  # pylint: disable=abstract-me
 
     _attr_name = "Remote"
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: LumagenDataUpdateCoordinator) -> None:
         """Initialize the Lumagen remote."""
         super().__init__(coordinator, "remote")
 

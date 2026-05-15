@@ -2,6 +2,13 @@ set_input_label:
   name: Set input label
   description: Set a Lumagen input label for memory A, B, C, or D.
   fields:
+    entity_id:
+      name: Entity
+      description: Lumagen entity to control. Required when multiple Lumagen devices are configured.
+      required: false
+      selector:
+        entity:
+          integration: lumagen
     memory:
       name: Memory
       description: Input memory to update.
@@ -36,6 +43,13 @@ set_input_labels:
   name: Set input labels
   description: Set multiple Lumagen input labels for memory A, B, C, or D.
   fields:
+    entity_id:
+      name: Entity
+      description: Lumagen entity to control. Required when multiple Lumagen devices are configured.
+      required: false
+      selector:
+        entity:
+          integration: lumagen
     memory:
       name: Memory
       description: Input memory to update.
@@ -66,13 +80,52 @@ display_message:
   name: Display message
   description: Display a message on the Lumagen OSD.
   fields:
+    entity_id:
+      name: Entity
+      description: Lumagen entity to control. Required when multiple Lumagen devices are configured.
+      required: false
+      selector:
+        entity:
+          integration: lumagen
     message:
       name: Message
-      description: Message to display. Unsupported characters are removed and text is truncated to 60 characters.
-      required: true
-      example: "Hello from Home Assistant"
+      description: Message to display. Used when line1 and line2 are not supplied.
+      required: false
       selector:
         text: {}
+
+    message_placement:
+      name: Message placement
+      description: Where to place the Message field when not using Line 1 / Line 2.
+      required: false
+      default: auto
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: Auto wrap across both lines
+              value: auto
+            - label: Put message on line 1
+              value: line1
+            - label: Put message on line 2
+              value: line2
+  
+    line1:
+      name: Line 1
+      description: Exact text for OSD line 1. Maximum 30 characters; longer text is truncated.
+      required: false
+      example: "Volume"
+      selector:
+        text: {}
+
+    line2:
+      name: Line 2
+      description: Exact text for OSD line 2. Maximum 30 characters; longer text is truncated.
+      required: false
+      example: "==============="
+      selector:
+        text: {}
+
     duration:
       name: Duration
       description: Display duration 0 through 9. Use 9 to leave the message until cleared.
@@ -85,6 +138,39 @@ display_message:
           max: 9
           mode: box
 
+    center:
+      name: Center
+      description: Optional centering mode.
+      required: false
+      default: line1
+      example: line1
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: Line 1
+              value: line1
+            - label: Line 2
+              value: line2
+            - label: Both lines
+              value: both
+
+    block_char:
+      name: Block character
+      description: Optional single legal ASCII character to display as a solid block in this OSD message.
+      required: false
+      example: "="
+      selector:
+        text: {}
+
 clear_message:
   name: Clear message
-  description: Clear the Lumagen OSD message.
+  description: Clear any Lumagen OSD message.
+  fields:
+    entity_id:
+      name: Entity
+      description: Lumagen entity to control. Required when multiple Lumagen devices are configured.
+      required: false
+      selector:
+        entity:
+          integration: lumagen

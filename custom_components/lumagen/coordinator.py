@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
-from datetime import timedelta
 import logging
+from dataclasses import dataclass
 from time import monotonic
 
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST, CONF_PORT
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from lumagen_control import (
     LumagenDevice,
     LumagenProtocol,
@@ -15,6 +18,7 @@ from lumagen_control import (
     TcpTransport,
 )
 from lumagen_control.formatters import (
+    OsdMessageOptions,
     format_3d_mode,
     format_auto_aspect_status,
     format_dynamic_range,
@@ -32,11 +36,6 @@ from lumagen_control.models import (
     LumagenOutputInfo,
     LumagenPowerStatus,
 )
-
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_PORT
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
     CONF_BAUDRATE,
@@ -74,10 +73,26 @@ class LumagenCoordinatorData:  # pylint: disable=too-many-instance-attributes
     sw_version: str | None = None
 
 
+@dataclass(frozen=True)
+class LumagenOsdMessage:  # pylint: disable=too-many-instance-attributes
+    """Lumagen OSD message request."""
+
+    message: str | None
+    duration: int
+    message_placement: str = "auto"
+    block_char: str | None = None
+    line1: str | None = None
+    line2: str | None = None
+    center_line1: bool = False
+    center_line2: bool = False
+
+
+# pylint: disable=too-many-instance-attributes
 class LumagenDataUpdateCoordinator(DataUpdateCoordinator[LumagenCoordinatorData]):
     """Coordinator for Lumagen state."""
 
     config_entry: ConfigEntry
+    device: LumagenDevice
 
     def __init__(
         self,
@@ -132,7 +147,9 @@ class LumagenDataUpdateCoordinator(DataUpdateCoordinator[LumagenCoordinatorData]
             )
         except ValueError as err:
             if self.data is not None:
-                _LOGGER.debug("Invalid Lumagen response; keeping previous state: %s", err)
+                _LOGGER.debug(
+                    "Invalid Lumagen response; keeping previous state: %s", err
+                )
                 return self.data
 
             raise UpdateFailed(f"Invalid Lumagen response: {err}") from err
@@ -213,7 +230,9 @@ class LumagenDataUpdateCoordinator(DataUpdateCoordinator[LumagenCoordinatorData]
 
         if event.startswith("!O01,"):
             status = dict(self._current_status() or {})
-            status.update(_parse_output_info(self.device.parse_output_info_event(event)))
+            status.update(
+                _parse_output_info(self.device.parse_output_info_event(event))
+            )
             self._set_status(status)
             return
 
@@ -689,10 +708,21 @@ class LumagenDataUpdateCoordinator(DataUpdateCoordinator[LumagenCoordinatorData]
         self._firmware_refresh_pending = False
         return lumagen_id.software
 
-    async def async_display_message(self, message: str, duration: int) -> None:
+    async def async_display_message(self, osd_message: LumagenOsdMessage) -> None:
         """Display a message on the Lumagen OSD."""
         async with self._lumagen_lock:
-            await self.device.display_message(message, duration)
+            await self.device.display_message(
+                duration=osd_message.duration,
+                options=OsdMessageOptions(
+                    message=osd_message.message,
+                    message_placement=osd_message.message_placement,
+                    block_char=osd_message.block_char,
+                    line1=osd_message.line1,
+                    line2=osd_message.line2,
+                    center_line1=osd_message.center_line1,
+                    center_line2=osd_message.center_line2,
+                ),
+            )
 
     async def async_clear_message(self) -> None:
         """Clear Lumagen OSD message."""

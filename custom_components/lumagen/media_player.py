@@ -2,25 +2,31 @@
 
 from __future__ import annotations
 
-from homeassistant.components.media_player import (MediaPlayerEntity,
-                                                   MediaPlayerEntityFeature,
-                                                   MediaPlayerState)
+from homeassistant.components.media_player import (
+    MediaPlayerEntity,
+    MediaPlayerEntityFeature,
+    MediaPlayerState,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import LumagenConfigEntry
+from .const import DOMAIN
+from .coordinator import LumagenDataUpdateCoordinator
 from .entity import LumagenEntity
 
 SOURCE_MAP = {f"Input {input_number}": input_number for input_number in range(1, 19)}
 
 
 async def async_setup_entry(
-    _hass: HomeAssistant,
+    hass: HomeAssistant,
     entry: LumagenConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Lumagen media player entity."""
-    async_add_entities([LumagenMediaPlayer(entry.runtime_data)])
+    coordinator: LumagenDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+
+    async_add_entities([LumagenMediaPlayer(coordinator)])
 
 
 class LumagenMediaPlayer(
@@ -37,7 +43,7 @@ class LumagenMediaPlayer(
     )
     _attr_source_list = list(SOURCE_MAP)
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: LumagenDataUpdateCoordinator) -> None:
         """Initialize the Lumagen media player."""
         super().__init__(coordinator, "media_player")
 

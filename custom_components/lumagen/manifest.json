@@ -6,6 +6,6 @@
   "documentation": "https://github.com/johncarey70/lumagen-ha",
   "iot_class": "local_polling",
   "integration_type": "device",
-  "requirements": ["pylumagen>=0.1.5", "pyserial-asyncio-fast>=0.16"],
+  "requirements": ["pylumagen==0.1.6", "pyserial-asyncio-fast>=0.16"],
   "version": "0.1.0"
 }
