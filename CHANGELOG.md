@@ -1,3 +1,24 @@
+## v0.1.1 - OSD message service improvements
+
+> **Important:** This version requires Lumagen firmware **030326 or later**.
+>
+> This version does **not** use Lumagen command delimiters. Configure the Lumagen Radiance Pro with:
+>
+> ```text
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Echo -> On
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Delimiters -> Off
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Report mode changes -> Fullv5
+> ```
+
+### Added
+
+- Added explicit two-line support to the OSD message action with separate Line 1 and Line 2 fields.
+- Added message placement control for normal messages, allowing auto-wrap, line 1, or line 2 placement.
+- Added optional line centering support for line 1, line 2, or both lines.
+- Added block-character substitution support for volume-bar style OSD messages.
+- Added multi-device routing for Lumagen actions using an optional `entity_id`.
+
+
 ## v0.1.0 - Initial release
 
 > **Important:** This version requires Lumagen firmware **030326 or later**.

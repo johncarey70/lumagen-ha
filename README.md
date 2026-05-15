@@ -28,6 +28,8 @@ This integration communicates with a Lumagen Radiance Pro over either a direct s
 - Button entities:
   - Toggle NLS
   - Show Aspect
+  - HDMI Input Restart
+  - HDMI Output Restart
   - Refresh Info
 - Sensors:
   - Current input/source
@@ -311,6 +313,19 @@ data:
 
 Displays a message on the Lumagen on-screen display.
 
+If only one Lumagen device is configured, `entity_id` can be omitted. If multiple Lumagen devices are configured, provide any Lumagen entity, such as the media player or remote entity, so the action can target the correct device.
+
+The display message action supports two modes:
+
+- `message` mode for a normal message that can auto-wrap or be forced onto one line.
+- `line1` / `line2` mode for exact control of both Lumagen OSD lines.
+
+Do not mix `message` with `line1` / `line2`. If `line1` or `line2` is supplied, explicit two-line mode is used.
+
+#### Message mode
+
+Use `message` for a normal message. By default, the integration word-wraps the message across the two Lumagen OSD lines.
+
 ```yaml
 action: lumagen.display_message
 data:
@@ -318,9 +333,76 @@ data:
   duration: 5
 ```
 
-duration is a Lumagen display duration value from 0 through 9.
+Use `message_placement` to force the message onto a specific OSD line.
 
-A value of 9 leaves the message on screen until cleared:
+```yaml
+action: lumagen.display_message
+data:
+  message: Movie starting
+  message_placement: line1
+  duration: 5
+```
+
+Valid `message_placement` values are:
+
+```text
+auto
+line1
+line2
+```
+
+#### Explicit two-line mode
+
+Use `line1` and/or `line2` when you want exact control over each OSD line.
+
+```yaml
+action: lumagen.display_message
+data:
+  line1: Volume
+  line2: "==============="
+  duration: 5
+```
+
+#### Centering
+
+Use `center` to center line 1, line 2, or both lines.
+
+```yaml
+action: lumagen.display_message
+data:
+  line1: Volume
+  line2: "==============="
+  center: both
+  duration: 5
+```
+
+Valid `center` values are:
+
+```text
+line1
+line2
+both
+```
+
+Omit `center` when no centering is needed.
+
+#### Block character / volume bar
+
+Use `block_char` to replace a chosen character with the Lumagen solid-block OSD character. This is useful for volume bars or progress bars.
+
+```yaml
+action: lumagen.display_message
+data:
+  line1: "Volume -35.0"
+  line2: "==============="
+  center: line1
+  block_char: "="
+  duration: 5
+```
+
+#### Persistent messages
+
+`duration` is a Lumagen display duration value from 0 through 9. A value of 9 leaves the message on screen until cleared.
 
 ```yaml
 action: lumagen.display_message
@@ -332,8 +414,9 @@ data:
 Messages are cleaned before being sent:
 
 - Unsupported characters are removed.
-- Text is truncated to 60 characters.
 - Lumagen supports 2 lines of up to 30 characters per line.
+- Explicit line text is truncated to 30 characters per line.
+- Auto-wrapped message text is split into up to two 30-character lines.
 
 ### Clear message
 
