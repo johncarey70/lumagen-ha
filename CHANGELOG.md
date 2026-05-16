@@ -1,3 +1,19 @@
+## v0.1.2 - Update pylumagen dependency
+
+> **Important:** This version requires Lumagen firmware **030326 or later**.
+>
+> This version does **not** use Lumagen command delimiters. Configure the Lumagen Radiance Pro with:
+>
+> ```text
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Echo -> On
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Delimiters -> Off
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Report mode changes -> Fullv5
+> ```
+
+### Changed
+
+- Updated the required `pylumagen` package to `0.1.7`.
+
 ## v0.1.1 - OSD message service improvements
 
 > **Important:** This version requires Lumagen firmware **030326 or later**.
