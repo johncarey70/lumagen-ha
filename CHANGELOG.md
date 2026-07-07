@@ -1,3 +1,22 @@
+## v0.1.3 - Refine OSD message formatting
+
+> **Important:** This version requires Lumagen firmware **030326 or later**.
+>
+> This version does **not** use Lumagen command delimiters. Configure the Lumagen Radiance Pro with:
+>
+> ```text
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Echo -> On
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Delimiters -> Off
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Report mode changes -> Fullv5
+> ```
+
+### Changed
+
+- Improved OSD message formatting so single-line `message` values no longer send a padded blank second line.
+- Improved auto-wrap behavior for long unbroken text, such as numeric strings, so it can split across both OSD lines instead of truncating at line 1.
+- Reduced unnecessary trailing padding for auto-wrapped messages when the second line is shorter than 30 characters.
+- Clarified that centering is simulated with spaces and may show visible OSD background.
+
 ## v0.1.2 - Update pylumagen dependency
 
 > **Important:** This version requires Lumagen firmware **030326 or later**.

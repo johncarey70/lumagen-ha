@@ -324,7 +324,7 @@ Do not mix `message` with `line1` / `line2`. If `line1` or `line2` is supplied, 
 
 #### Message mode
 
-Use `message` for a normal message. By default, the integration word-wraps the message across the two Lumagen OSD lines.
+Use `message` for a normal message. By default, the integration word-wraps the message across the two Lumagen OSD lines. Single-line messages are sent without a padded blank second line. Long unbroken text is split across the two 30-character OSD lines.
 
 ```yaml
 action: lumagen.display_message
@@ -385,6 +385,7 @@ both
 ```
 
 Omit `center` when no centering is needed.
+Centering is simulated by adding spaces because the Lumagen OSD command does not have a native centering option. Depending on the OSD background, centered messages may show visible blank space before or after the text.
 
 #### Block character / volume bar
 
@@ -417,6 +418,7 @@ Messages are cleaned before being sent:
 - Lumagen supports 2 lines of up to 30 characters per line.
 - Explicit line text is truncated to 30 characters per line.
 - Auto-wrapped message text is split into up to two 30-character lines.
+- Auto-wrapped messages avoid unnecessary trailing padding when only one line or a short second line is needed.
 
 ### Clear message
 

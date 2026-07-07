@@ -89,7 +89,7 @@ display_message:
           integration: lumagen
     message:
       name: Message
-      description: Message to display. Used when line1 and line2 are not supplied.
+      description: Message to display. Used when Line 1 and Line 2 are not supplied. Auto mode wraps across two 30-character OSD lines and avoids trailing padding when possible.
       required: false
       selector:
         text: {}
@@ -140,9 +140,8 @@ display_message:
 
     center:
       name: Center
-      description: Optional centering mode.
+      description: Optional centering mode. Centering is simulated with spaces and may show visible blank OSD background.
       required: false
-      default: line1
       example: line1
       selector:
         select:
