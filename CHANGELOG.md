@@ -1,3 +1,19 @@
+## v0.1.5 - Load input labels during setup and reconnect
+
+> **Important:** This version requires Lumagen firmware **030326 or later**.
+>
+> This version does **not** use Lumagen command delimiters. Configure the Lumagen Radiance Pro with:
+>
+> ```text
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Echo -> On
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Delimiters -> Off
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Report mode changes -> Fullv5
+> ```
+
+### Fixed
+
+- Input labels are now loaded as part of the first successful refresh and after a reconnect, so custom names such as HDFury are not overwritten by the refresh result.
+
 ## v0.1.4 - Reconnect when the Lumagen is unreachable
 
 > **Important:** This version requires Lumagen firmware **030326 or later**.

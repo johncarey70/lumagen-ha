@@ -28,13 +28,21 @@ type EventCallback = Callable[[str], Awaitable[None]] | None
 class FakeLumagenDevice:
     """In-memory Lumagen device used by reconnect tests."""
 
-    def __init__(self, *, reachable: bool = True, power_on: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        reachable: bool = True,
+        power_on: bool = False,
+        input_labels: dict[int, str] | None = None,
+    ) -> None:
         """Initialize the fake device."""
         self.reachable = reachable
         self.power_on = power_on
+        self.input_labels = input_labels or {}
         self._connected = False
         self.connect_calls = 0
         self.disconnect_calls = 0
+        self.label_query_calls = 0
         self._event_callback: EventCallback = None
 
     @property
@@ -91,8 +99,9 @@ class FakeLumagenDevice:
         return None
 
     async def query_input_labels(self, memory: str) -> dict[int, str]:
-        """Return an empty label map."""
-        return {}
+        """Return configured custom input labels."""
+        self.label_query_calls += 1
+        return dict(self.input_labels)
 
 
 def _mock_entry() -> MockConfigEntry:
@@ -176,18 +185,61 @@ async def test_setup_succeeds_when_lumagen_is_in_standby(
     assert coordinator.data.power_on is False
 
 
+async def test_setup_loads_input_labels(hass: HomeAssistant) -> None:
+    """Custom input labels are part of the first refresh payload."""
+    entry = _mock_entry()
+    device = FakeLumagenDevice(
+        reachable=True,
+        power_on=True,
+        input_labels={1: "HDFury", 2: "Apple TV"},
+    )
+
+    assert await _setup_with_device(hass, entry, device) is True
+    coordinator = _coordinator(hass, entry)
+    assert coordinator.data is not None
+    assert coordinator.data.input_labels == {1: "HDFury", 2: "Apple TV"}
+    assert device.label_query_calls >= 1
+
+    state = hass.states.get("media_player.theater_lumagen_radiance_pro")
+    assert state is not None
+    assert state.attributes.get("source") == "HDFury"
+    assert state.attributes.get("source_list") == [
+        "HDFury",
+        "Apple TV",
+        "Input 3",
+        "Input 4",
+        "Input 5",
+        "Input 6",
+        "Input 7",
+        "Input 8",
+        "Input 9",
+        "Input 10",
+    ]
+    source_sensor = hass.states.get(
+        "sensor.theater_lumagen_radiance_pro_current_source"
+    )
+    assert source_sensor is not None
+    assert source_sensor.state == "HDFury"
+
+
 async def test_dropped_connection_retries_and_recovers(
     hass: HomeAssistant,
 ) -> None:
     """A live drop is marked unavailable, retried, and recovered."""
     entry = _mock_entry()
-    device = FakeLumagenDevice(reachable=True, power_on=True)
+    device = FakeLumagenDevice(
+        reachable=True,
+        power_on=True,
+        input_labels={1: "HDFury"},
+    )
 
     assert await _setup_with_device(hass, entry, device) is True
     coordinator = _coordinator(hass, entry)
     assert coordinator.data is not None
     assert coordinator.data.available is True
     assert coordinator.data.power_on is True
+    assert coordinator.data.input_labels == {1: "HDFury"}
+    labels_after_setup = device.label_query_calls
 
     device.reachable = False
     device.drop_connection()
@@ -205,6 +257,8 @@ async def test_dropped_connection_retries_and_recovers(
     assert coordinator.data.power_on is True
     assert coordinator._connected is True
     assert device.is_connected is True
+    assert coordinator.data.input_labels == {1: "HDFury"}
+    assert device.label_query_calls > labels_after_setup
     assert coordinator._reconnect_delay == 0.05
     assert delay_after_drop >= 0.05
 

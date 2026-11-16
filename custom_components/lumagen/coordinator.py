@@ -132,11 +132,13 @@ class LumagenDataUpdateCoordinator(DataUpdateCoordinator[LumagenCoordinatorData]
 
     async def _async_update_data(self) -> LumagenCoordinatorData:
         """Fetch startup data from the Lumagen."""
+        reconnected = False
         try:
             async with self._lumagen_lock:
                 if not self._connected:
                     await self.device.connect()
                     self._connected = True
+                    reconnected = True
 
                 power_status = await self.device.query_power()
                 power_on = _power_on(power_status, default=False)
@@ -174,9 +176,12 @@ class LumagenDataUpdateCoordinator(DataUpdateCoordinator[LumagenCoordinatorData]
             await self._add_horizontal_status(status)
 
         input_labels = self._current_input_labels()
-
-        if input_labels is None:
-            self._schedule_input_labels_load()
+        if input_labels is None or reconnected:
+            queried_labels = await self._async_query_input_labels()
+            if queried_labels is not None:
+                input_labels = queried_labels
+            elif input_labels is None:
+                self._schedule_input_labels_load()
 
         sw_version = await self._async_refresh_firmware_version()
 
@@ -336,19 +341,27 @@ class LumagenDataUpdateCoordinator(DataUpdateCoordinator[LumagenCoordinatorData]
             )
         )
 
+    async def _async_query_input_labels(self) -> dict[int, str] | None:
+        """Query Lumagen input labels, or None if the query fails."""
+        try:
+            async with self._lumagen_lock:
+                return await self.device.query_input_labels("A")
+        except LUMAGEN_TIMEOUT_ERRORS:
+            _LOGGER.debug("Timed out loading Lumagen input labels")
+            return None
+        except (OSError, RuntimeError, ValueError) as err:
+            _LOGGER.debug("Failed to load Lumagen input labels: %s", err)
+            return None
+
     async def async_load_input_labels(self) -> None:
         """Load Lumagen input labels in the background."""
         try:
-            async with self._lumagen_lock:
-                input_labels = await self.device.query_input_labels("A")
-        except LUMAGEN_TIMEOUT_ERRORS:
-            _LOGGER.debug("Timed out loading Lumagen input labels")
-            return
-        except (OSError, RuntimeError, ValueError) as err:
-            _LOGGER.debug("Failed to load Lumagen input labels: %s", err)
-            return
+            input_labels = await self._async_query_input_labels()
         finally:
             self._input_labels_task = None
+
+        if input_labels is None:
+            return
 
         self.async_set_updated_data(
             LumagenCoordinatorData(
@@ -677,7 +690,8 @@ class LumagenDataUpdateCoordinator(DataUpdateCoordinator[LumagenCoordinatorData]
         if self._input_labels_task is not None and not self._input_labels_task.done():
             return
 
-        self._input_labels_task = self.hass.async_create_task(
+        self._input_labels_task = self.config_entry.async_create_background_task(
+            self.hass,
             self.async_load_input_labels(),
             "lumagen_load_input_labels",
         )
