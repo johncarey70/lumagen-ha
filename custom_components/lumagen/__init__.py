@@ -12,7 +12,6 @@ from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN, PLATFORMS
 from .coordinator import (
-    LumagenCoordinatorData,
     LumagenDataUpdateCoordinator,
     LumagenOsdMessage,
     create_lumagen_device,
@@ -241,16 +240,6 @@ async def async_setup_entry(
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
     try:
-        coordinator.async_set_updated_data(
-            LumagenCoordinatorData(
-                power_on=False,
-                input_number=None,
-                input_memory=None,
-                input_labels=None,
-                status=None,
-            )
-        )
-
         await coordinator.async_config_entry_first_refresh()
 
         _register_services(hass)

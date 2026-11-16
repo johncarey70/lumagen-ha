@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from dataclasses import dataclass
 from time import monotonic
@@ -55,7 +56,11 @@ _LOGGER = logging.getLogger(__name__)
 POWER_OFF_IGNORE_AFTER_POWER_ON_SECONDS = 5.0
 OUTPUT_REFRESH_DELAY_SECONDS = 3.0
 OUTPUT_REFRESH_RETRY_DELAY_SECONDS = 30.0
+RECONNECT_INITIAL_DELAY_SECONDS = 5.0
+RECONNECT_MAX_DELAY_SECONDS = 60.0
+CONNECTION_WATCH_INTERVAL_SECONDS = 5.0
 LUMAGEN_TIMEOUT_ERRORS = (TimeoutError, asyncio.TimeoutError)
+LUMAGEN_CONNECTION_ERRORS = (OSError, RuntimeError, *LUMAGEN_TIMEOUT_ERRORS)
 
 StatusValue = str | int | float | bool | None
 
@@ -109,6 +114,8 @@ class LumagenDataUpdateCoordinator(DataUpdateCoordinator[LumagenCoordinatorData]
         self._input_labels_task: asyncio.Task[None] | None = None
         self._firmware_refresh_pending = True
         self._connected = False
+        self._connection_task: asyncio.Task[None] | None = None
+        self._reconnect_delay = RECONNECT_INITIAL_DELAY_SECONDS
 
         super().__init__(
             hass,
@@ -138,9 +145,11 @@ class LumagenDataUpdateCoordinator(DataUpdateCoordinator[LumagenCoordinatorData]
 
             status = self._parse_full_status(full_status)
 
-        except LUMAGEN_TIMEOUT_ERRORS:
-            return self._handle_update_failure("Timed out querying Lumagen state")
-        except OSError as err:
+        except LUMAGEN_CONNECTION_ERRORS as err:
+            await self._async_disconnect_quietly()
+            if isinstance(err, LUMAGEN_TIMEOUT_ERRORS):
+                return self._handle_update_failure("Timed out querying Lumagen state")
+
             return self._handle_update_failure(
                 f"Error querying Lumagen state; marking unavailable: {err}",
                 err,
@@ -170,6 +179,9 @@ class LumagenDataUpdateCoordinator(DataUpdateCoordinator[LumagenCoordinatorData]
             self._schedule_input_labels_load()
 
         sw_version = await self._async_refresh_firmware_version()
+
+        self._reconnect_delay = RECONNECT_INITIAL_DELAY_SECONDS
+        self._ensure_connection_watch()
 
         return LumagenCoordinatorData(
             power_on=power_on,
@@ -351,11 +363,83 @@ class LumagenDataUpdateCoordinator(DataUpdateCoordinator[LumagenCoordinatorData]
         )
 
     async def async_shutdown(self) -> None:
-        """Disconnect from the Lumagen."""
-        async with self._lumagen_lock:
-            await self.device.disconnect()
+        """Disconnect from the Lumagen and stop the connection watch."""
+        if self._connection_task is not None:
+            self._connection_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._connection_task
+            self._connection_task = None
 
+        await self._async_disconnect_quietly()
+
+    def _ensure_connection_watch(self) -> None:
+        """Start the background connection watch if it is not already running."""
+        if self._connection_task is not None and not self._connection_task.done():
+            return
+
+        self._connection_task = self.hass.async_create_background_task(
+            self._async_connection_loop(),
+            "lumagen_connection_watch",
+        )
+
+    async def _async_connection_loop(self) -> None:
+        """Watch the Lumagen connection and retry with backoff after a drop."""
+        while True:
+            if self._connected and self.device.is_connected:
+                self._reconnect_delay = RECONNECT_INITIAL_DELAY_SECONDS
+                await asyncio.sleep(CONNECTION_WATCH_INTERVAL_SECONDS)
+                continue
+
+            if self._connected and not self.device.is_connected:
+                _LOGGER.warning("Lumagen connection lost; will retry")
+                await self._async_handle_disconnect()
+
+            await asyncio.sleep(self._reconnect_delay)
+
+            if self._connected and self.device.is_connected:
+                self._reconnect_delay = RECONNECT_INITIAL_DELAY_SECONDS
+                continue
+
+            await self.async_request_refresh()
+
+            if self._connected and self.device.is_connected:
+                _LOGGER.info("Reconnected to Lumagen")
+                self._reconnect_delay = RECONNECT_INITIAL_DELAY_SECONDS
+            else:
+                self._reconnect_delay = min(
+                    self._reconnect_delay * 2,
+                    RECONNECT_MAX_DELAY_SECONDS,
+                )
+
+    async def _async_handle_disconnect(self) -> None:
+        """Mark the coordinator unavailable and close a dropped connection."""
+        await self._async_disconnect_quietly()
+
+        if self.data is None:
+            return
+
+        self.async_set_updated_data(
+            LumagenCoordinatorData(
+                power_on=self.data.power_on,
+                available=False,
+                input_number=self.data.input_number,
+                input_memory=self.data.input_memory,
+                input_labels=self.data.input_labels,
+                status=self.data.status,
+                sw_version=self.data.sw_version,
+            )
+        )
+
+    async def _async_disconnect_quietly(self) -> None:
+        """Disconnect the Lumagen device and clear connected state."""
         self._connected = False
+        self._firmware_refresh_pending = True
+
+        try:
+            async with self._lumagen_lock:
+                await self.device.disconnect()
+        except LUMAGEN_CONNECTION_ERRORS as err:
+            _LOGGER.debug("Error disconnecting from Lumagen: %s", err)
 
     def _handle_update_failure(
         self,
@@ -367,7 +451,7 @@ class LumagenDataUpdateCoordinator(DataUpdateCoordinator[LumagenCoordinatorData]
         self._firmware_refresh_pending = True
 
         if self.data is not None:
-            _LOGGER.debug(message)
+            _LOGGER.warning(message)
             return LumagenCoordinatorData(
                 power_on=self.data.power_on,
                 available=False,

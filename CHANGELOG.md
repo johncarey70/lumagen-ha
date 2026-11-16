@@ -1,3 +1,20 @@
+## v0.1.4 - Reconnect when the Lumagen is unreachable
+
+> **Important:** This version requires Lumagen firmware **030326 or later**.
+>
+> This version does **not** use Lumagen command delimiters. Configure the Lumagen Radiance Pro with:
+>
+> ```text
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Echo -> On
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Delimiters -> Off
+> MENU -> Other -> I/O Setup -> RS-232 Setup -> Report mode changes -> Fullv5
+> ```
+
+### Fixed
+
+- Setup now raises `ConfigEntryNotReady` when the Lumagen is unreachable, so Home Assistant retries until it comes back.
+- A live connection that drops is marked unavailable and retried with backoff until it reconnects.
+
 ## v0.1.3 - Refine OSD message formatting
 
 > **Important:** This version requires Lumagen firmware **030326 or later**.
